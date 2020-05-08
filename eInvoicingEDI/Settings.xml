@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConfigFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Companies>
+    <Company>
+      <ERPCompany>200</ERPCompany>
+      <IsActive>1</IsActive>
+      <URLToken>https://clientbasic.mastersindia.co/oauth/access_token</URLToken>
+      <UserName>testeway@mastersindia.co</UserName>
+      <Password>Test@1234</Password>
+      <ClientID>fIXefFyxGNfDWOcCWn</ClientID>
+      <ClientSecret>QFd6dZvCGqckabKxTapfZgJc</ClientSecret>
+      <GrantType>password</GrantType>
+      <URLSubmitInvoice>https://clientbasic.mastersindia.co/generateEinvoice</URLSubmitInvoice>
+      <URLCancelInvoice>https://clientbasic.mastersindia.co/cancelEinvoice</URLCancelInvoice>
+      <URLReFetchInvoice>https://clientbasic.mastersindia.co/getEinvoiceData</URLReFetchInvoice>
+    </Company>
+    <Company>
+      <ERPCompany>700</ERPCompany>
+      <IsActive>0</IsActive>
+      <URLToken>https://clientbasic.mastersindia.co/oauth/access_token</URLToken>
+      <UserName>testeway@mastersindia.co</UserName>
+      <Password>Test@1234</Password>
+      <ClientID>fIXefFyxGNfDWOcCWn</ClientID>
+      <ClientSecret>QFd6dZvCGqckabKxTapfZgJc</ClientSecret>
+      <GrantType>password</GrantType>
+      <URLSubmitInvoice>https://clientbasic.mastersindia.co/generateEinvoice</URLSubmitInvoice>
+      <URLCancelInvoice>https://clientbasic.mastersindia.co/cancelEinvoice</URLCancelInvoice>
+      <URLReFetchInvoice>https://clientbasic.mastersindia.co/getEinvoiceData</URLReFetchInvoice>
+    </Company>
+    <Company>
+      <ERPCompany>651</ERPCompany>
+      <IsActive>0</IsActive>
+      <URLToken>https://clientbasic.mastersindia.co/oauth/access_token</URLToken>
+      <UserName>testeway@mastersindia.co</UserName>
+      <Password>Test@1234</Password>
+      <ClientID>fIXefFyxGNfDWOcCWn</ClientID>
+      <ClientSecret>QFd6dZvCGqckabKxTapfZgJc</ClientSecret>
+      <GrantType>password</GrantType>
+      <URLSubmitInvoice>https://clientbasic.mastersindia.co/generateEinvoice</URLSubmitInvoice>
+      <URLCancelInvoice>https://clientbasic.mastersindia.co/cancelEinvoice</URLCancelInvoice>
+      <URLReFetchInvoice>https://clientbasic.mastersindia.co/getEinvoiceData</URLReFetchInvoice>
+    </Company>
+  </Companies>
+  <StartupPath />
+  <SerializedAt>C:\Data\Projects15.NET\eInvoicingEDI\eInvoicingEDI\bin\Debug\Settings.xml</SerializedAt>
+  <BaaNLive>0</BaaNLive>
+  <Testing>0</Testing>
+  <JoomlaLive>0</JoomlaLive>
+</ConfigFile>
