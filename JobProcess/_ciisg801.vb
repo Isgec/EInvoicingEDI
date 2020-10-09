@@ -8,7 +8,7 @@ Namespace SIS.CIISG
   Public Class ciisg801
     Public Property t_comp As Integer = 0
     Public Property t_tran As String = ""
-    Public Property t_docn As Integer = 0
+    Public Property t_docn As String = ""
     Public Property t_ogst As String = ""
     Public Property t_irnn As String = ""
     Public Property t_dtyp As String = ""
@@ -30,6 +30,12 @@ Namespace SIS.CIISG
     Public Property t_ispi As String = "" 'ISP URL Invoice
     Public Property t_isqr As String = "" 'ISGEC URL QrCode
     Public Property t_isgi As String = "" 'ISGEC URL Invoice
+    ''' <summary>
+    ''' Invoice Cancelled Date Time
+    ''' </summary>
+    ''' <returns></returns>
+    Public Property t_cdte As DateTime
+    Public Property t_ldte As DateTime
 
     Public Shared Function GetCiIsg801(t_comp As String, t_tran As String, t_docn As String, comp As String) As SIS.CIISG.ciisg801
       Dim Results As SIS.CIISG.ciisg801 = Nothing
@@ -82,13 +88,15 @@ Namespace SIS.CIISG
       Sql &= " t_isgi, "
       Sql &= " t_ispi, "
       Sql &= " t_isqr, "
-      Sql &= " t_qrcd  "
+      Sql &= " t_qrcd, "
+      Sql &= " t_cdte, "
+      Sql &= " t_ldte  "
       Sql &= " ) "
       Sql &= " VALUES  "
       Sql &= " ( "
       Sql &= "  " & ci801.t_comp & ","
       Sql &= " '" & ci801.t_tran & "',"
-      Sql &= "  " & ci801.t_docn & ","
+      Sql &= " '" & ci801.t_docn & "',"
       Sql &= " '" & ci801.t_ogst & "',"
       Sql &= " '" & ci801.t_irnn & "',"
       Sql &= " '" & ci801.t_dtyp & "',"
@@ -109,7 +117,9 @@ Namespace SIS.CIISG
       Sql &= " '" & ci801.t_isgi & "',"
       Sql &= " '" & ci801.t_ispi & "',"
       Sql &= " '" & ci801.t_isqr & "',"
-      Sql &= " '" & ci801.t_qrcd & "'"
+      Sql &= " '" & ci801.t_qrcd & "',"
+      Sql &= "  convert(datetime,'01/01/1970',103),"
+      Sql &= "  convert(datetime,'" & Now.AddMinutes(-330).ToString("dd/MM/yyyy HH:mm:ss") & "',103) "
       Sql &= " ) "
       Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
         Using Cmd As SqlCommand = Con.CreateCommand()
@@ -144,11 +154,13 @@ Namespace SIS.CIISG
       Sql &= " t_isgi = '" & ci801.t_isgi & "',"
       Sql &= " t_ispi = '" & ci801.t_ispi & "',"
       Sql &= " t_isqr = '" & ci801.t_isqr & "',"
+      Sql &= " t_cdte = convert(datetime,'" & ci801.t_cdte.ToString("dd/MM/yyyy") & "',103),"
+      Sql &= " t_ldte = convert(datetime,'" & Now.AddMinutes(-330).ToString("dd/MM/yyyy HH:mm:ss") & "',103),"
       Sql &= " t_qrcd = '" & ci801.t_qrcd & "'"
       Sql &= " WHERE "
       Sql &= " t_comp = " & ci801.t_comp & " "
       Sql &= " AND t_tran = '" & ci801.t_tran & "' "
-      Sql &= " AND t_docn = " & ci801.t_docn & " "
+      Sql &= " AND t_docn = '" & ci801.t_docn & "' "
       Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
         Using Cmd As SqlCommand = Con.CreateCommand()
           Cmd.CommandType = CommandType.Text
@@ -205,39 +217,8 @@ Namespace SIS.CIISG
       End Using
       Return txtNo
     End Function
-
     Public Sub New(ByVal Reader As SqlDataReader)
-      Try
-        For Each pi As System.Reflection.PropertyInfo In Me.GetType.GetProperties
-          If pi.MemberType = Reflection.MemberTypes.Property Then
-            Try
-              Dim Found As Boolean = False
-              For I As Integer = 0 To Reader.FieldCount - 1
-                If Reader.GetName(I).ToLower = pi.Name.ToLower Then
-                  Found = True
-                  Exit For
-                End If
-              Next
-              If Found Then
-                If Convert.IsDBNull(Reader(pi.Name)) Then
-                  Select Case Reader.GetDataTypeName(Reader.GetOrdinal(pi.Name))
-                    Case "decimal"
-                      CallByName(Me, pi.Name, CallType.Let, "0.00")
-                    Case "bit"
-                      CallByName(Me, pi.Name, CallType.Let, Boolean.FalseString)
-                    Case Else
-                      CallByName(Me, pi.Name, CallType.Let, String.Empty)
-                  End Select
-                Else
-                  CallByName(Me, pi.Name, CallType.Let, Reader(pi.Name))
-                End If
-              End If
-            Catch ex As Exception
-            End Try
-          End If
-        Next
-      Catch ex As Exception
-      End Try
+      SIS.SYS.SQLDatabase.DBCommon.NewObj(Me, Reader)
     End Sub
     Public Sub New()
     End Sub

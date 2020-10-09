@@ -8,7 +8,7 @@ Namespace SIS.CIISG
   Public Class ciisg803
     Public Property t_comp As Integer = 0
     Public Property t_tran As String = ""
-    Public Property t_docn As Integer = 0
+    Public Property t_docn As String = ""
     Public Property t_ogst As String = ""
     Public Property t_taxs As String = ""
     Public Property t_vers As Integer = 0
@@ -134,6 +134,15 @@ Namespace SIS.CIISG
     Public Property t_invs As Integer = 0
     Public Property t_rers As Integer = 0
     Public Property t_rpst As Integer = 0
+    Public Property t_isse As String = ""
+    Public Property t_iamt As Decimal = 0.00
+    Public Property t_camt As Decimal = 0.00
+
+    Public Property t_samt As Decimal = 0.00
+    Public Property t_cesa As Decimal = 0.00
+    Public Property t_cssa As Decimal = 0.00
+
+
     Public Shared Function GetItems(t_comp As String, t_tran As String, t_docn As String, comp As String) As List(Of SIS.CIISG.ciisg803)
       Dim Results As New List(Of SIS.CIISG.ciisg803)
       Dim Sql As String = ""
@@ -161,10 +170,10 @@ Namespace SIS.CIISG
     Public Shared Function ConvertToMiItem(ci800 As SIS.CIISG.ciisg800, ci803 As SIS.CIISG.ciisg803) As SIS.CIISG.miSubmitInvoice.citem_list
       Dim tmp As New miSubmitInvoice.citem_list
       With tmp
-        .item_serial_number = ci803.t_item
+        .item_serial_number = ci803.t_line   ' ci803.t_item
         .product_description = ci803.t_dsca
-        .is_service = "N" 'Not available in Mapping
-        .hsn_code = ci803.t_hsnc
+        .is_service = ci803.t_isse
+        .hsn_code = IIf(.is_service = "Y", ci803.t_hsnc.Substring(0, 4), ci803.t_hsnc)
         .bar_code = ci803.t_barc
         .quantity = ci803.t_qnty
         .free_quantity = ci803.t_fqty
@@ -172,29 +181,34 @@ Namespace SIS.CIISG
         .unit_price = ci803.t_pric
         .total_amount = ci803.t_amnt
         .discount = ci803.t_disc
-        '.pre_tax_value = 0 'Not available in Mapping
+        .pre_tax_value = 0 'Not available in Mapping
         .other_charge = ci803.t_othc
         .assessable_value = ci803.t_assv
         .gst_rate = ci803.t_cgst + ci803.t_sgst + ci803.t_igst
-        .igst_amount = ci803.t_assv * ci803.t_igst / 100
-        .cgst_amount = ci803.t_assv * ci803.t_cgst / 100
-        .sgst_amount = ci803.t_assv * ci803.t_sgst / 100
+        .igst_amount = ci803.t_iamt
+        .cgst_amount = ci803.t_camt
+        .sgst_amount = ci803.t_samt
+        .cess_rate = ci803.t_cess
+        .cess_amount = ci803.t_cesa
         .cess_nonadvol_amount = ci803.t_cnaa
-        .cess_amount = ci800.t_tces
-        .state_cess_amount = ci800.t_tscs
-        .state_cess_nonadvol_amount = ci800.t_cnaa
-        '.order_line_reference = 'Not available in Mapping
-        '.country_origin = 'Not available in Mapping
-        '.product_serial_number = 'Not available in Mapping
-        '.item_attribute_details = 'Not available in Mapping
-        '.item_attribute_value = 'Not available in Mapping
+        .state_cess_rate = ci803.t_scsr
+        .state_cess_amount = ci803.t_cssa
+        .state_cess_nonadvol_amount = ci803.t_cnaa
         .total_item_value = ci803.t_valu
+        .country_origin = "" 'Not available in Mapping
+        .order_line_reference = "" 'Not available in Mapping
+        .product_serial_number = "" 'Not available in Mapping
         With .batch_details
           .name = ci803.t_batn
           .expiry_date = ci803.t_bate
           .warranty_date = ci803.t_ward
         End With
-
+        Dim oAD As New SIS.CIISG.miSubmitInvoice.cattribute_details
+        With oAD
+          .item_attribute_details = "" 'Not available in Mapping
+          .item_attribute_value = "" 'Not available in Mapping
+        End With
+        .attribute_details.Add(oAD)
       End With
       Return tmp
     End Function
@@ -226,37 +240,7 @@ Namespace SIS.CIISG
     '05. Used
 
     Public Sub New(ByVal Reader As SqlDataReader)
-      Try
-        For Each pi As System.Reflection.PropertyInfo In Me.GetType.GetProperties
-          If pi.MemberType = Reflection.MemberTypes.Property Then
-            Try
-              Dim Found As Boolean = False
-              For I As Integer = 0 To Reader.FieldCount - 1
-                If Reader.GetName(I).ToLower = pi.Name.ToLower Then
-                  Found = True
-                  Exit For
-                End If
-              Next
-              If Found Then
-                If Convert.IsDBNull(Reader(pi.Name)) Then
-                  Select Case Reader.GetDataTypeName(Reader.GetOrdinal(pi.Name))
-                    Case "decimal"
-                      CallByName(Me, pi.Name, CallType.Let, "0.00")
-                    Case "bit"
-                      CallByName(Me, pi.Name, CallType.Let, Boolean.FalseString)
-                    Case Else
-                      CallByName(Me, pi.Name, CallType.Let, String.Empty)
-                  End Select
-                Else
-                  CallByName(Me, pi.Name, CallType.Let, Reader(pi.Name))
-                End If
-              End If
-            Catch ex As Exception
-            End Try
-          End If
-        Next
-      Catch ex As Exception
-      End Try
+      SIS.SYS.SQLDatabase.DBCommon.NewObj(Me, Reader)
     End Sub
     Public Sub New()
     End Sub

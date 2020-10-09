@@ -43,6 +43,9 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ejiVault">
+      <HintPath>..\..\ejiVault\ejiVault\bin\Debug\ejiVault.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web" />
@@ -66,7 +69,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigFile.vb" />
-    <Compile Include="ERPLN.vb" />
     <Compile Include="JobProcessor.vb" />
     <Compile Include="mapDrive.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
@@ -91,9 +93,6 @@
     <Compile Include="_ciisg803.vb" />
     <Compile Include="_miObject.vb" />
     <Compile Include="_ciisg800.vb" />
-    <Compile Include="_ediAFile.vb" />
-    <Compile Include="_ediALib.vb" />
-    <Compile Include="_ediASeries.vb" />
     <Compile Include="_Enums.vb" />
   </ItemGroup>
   <ItemGroup>

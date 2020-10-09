@@ -3,6 +3,7 @@ Imports System.Collections.Generic
 Imports System.Data
 Imports System.Data.SqlClient
 Imports System.ComponentModel
+Imports System.Web.Script.Serialization
 Namespace SIS.CIISG
   Public Class miSubmitInvoice
     Public Property access_token As String = ""
@@ -12,18 +13,19 @@ Namespace SIS.CIISG
     Public Property document_details As New cdocument_details
     Public Property seller_details As New cseller_details
     Public Property buyer_details As New cbuyer_details
-    Public Property dispatch_details As New cdispatch_details
-    Public Property ship_details As New cship_details
-    Public Property export_details As New cexport_details
-    Public Property payment_details As New cpayment_details
+    Public Property dispatch_details As cdispatch_details = Nothing
+    Public Property ship_details As cship_details = Nothing
+    Public Property export_details As cexport_details = Nothing
+    Public Property payment_details As cpayment_details = Nothing
     Public Property reference_details As New creference_details
-    Public Property additional_document_details As New List(Of cadditional_document_details)
+    Public Property additional_document_details As List(Of cadditional_document_details) = Nothing
     Public Property value_details As New cvalue_details
     Public Property ewaybill_details As New cewaybill_details
     Public Property item_list As New List(Of citem_list)
     Public Class ctransaction_details
       Public Property supply_type As String = ""
       Public Property charge_type As String = ""
+      Public Property igst_on_intra As String = ""
       Public Property ecommerce_gstin As String = ""
     End Class
     Public Class cdocument_details
@@ -81,6 +83,7 @@ Namespace SIS.CIISG
       Public Property foreign_currency As String = ""
       Public Property refund_claim As String = ""
       Public Property port_code As String = ""
+      Public Property export_duty As String = ""
     End Class
     Public Class cpayment_details
       Public Property bank_account_number As String = ""
@@ -91,16 +94,19 @@ Namespace SIS.CIISG
       Public Property branch_or_ifsc As String = ""
       Public Property payment_mode As String = ""
       Public Property payee_name As String = ""
-      Public Property payment_due_date As String = ""
+      Public Property outstanding_amount As String = ""
       Public Property payment_instruction As String = ""
       Public Property payment_term As String = ""
     End Class
     Public Class creference_details
       Public Property invoice_remarks As String = ""
-      Public Property invoice_period_start_date As String = ""
-      Public Property invoice_period_end_date As String = ""
-      Public Property preceding_document_details As New List(Of cpreceding_document_details)
-      Public Property contract_details As New List(Of ccontract_details)
+      Public Property document_period_details As cdocument_period_details = Nothing
+      Public Property preceding_document_details As List(Of cpreceding_document_details) = Nothing
+      Public Property contract_details As List(Of ccontract_details) = Nothing
+    End Class
+    Public Class cdocument_period_details
+      Public Property invoice_period_start_date As String = "" '10
+      Public Property invoice_period_end_date As String = "" '(10)
     End Class
     Public Class cpreceding_document_details
       Public Property reference_of_original_invoice As String = ""
@@ -128,9 +134,10 @@ Namespace SIS.CIISG
       Public Property total_sgst_value As String = ""
       Public Property total_igst_value As String = ""
       Public Property total_cess_value As String = ""
-      Public Property total_cess_nonadvol_value As String = ""
-      Public Property total_invoice_value As String = ""
       Public Property total_cess_value_of_state As String = ""
+      Public Property total_discount As String = ""
+      Public Property total_other_charges As String = ""
+      Public Property total_invoice_value As String = ""
       Public Property round_off_amount As String = ""
       Public Property total_invoice_value_additional_currency As String = ""
     End Class
@@ -395,29 +402,61 @@ Namespace SIS.CIISG
     Public Property error_description As String = ""
   End Class
   Public Class miSubmitResponce
-    Public Property AckNo As String = ""
-    Public Property AckDt As String = ""
-    Public Property Irn As String = ""
-    Public Property SignedInvoice As String = ""
-    Public Property SignedQRCode As String = ""
-    Public Property Status As String = ""
-    Public Property [error] As Boolean = False
-    Public Property message As String = ""
-    Public Property errorMessage As String = ""
-    Public Property code As String = ""
-    Public Property EwbNo As String = ""
-    Public Property EwbDt As String = ""
-    Public Property EwbValidTill As String = ""
-    Public Property QRCodeUrl As String = ""
-    Public Property EinvoicePdf As String = ""
-    Public Property alert As String = ""
-    Public Property RequestID As String = ""
-    Public Property results As New miError
+    Public Property results As New cResults
     Public ReadOnly Property isError As Boolean
       Get
-        Return IIf(SignedInvoice = "", True, False)
+        Try
+          Return IIf(results.code = "200", False, True)
+        Catch ex As Exception
+          Return False
+        End Try
       End Get
     End Property
+    Public ReadOnly Property isInternalError As Boolean
+      Get
+        Try
+          Return IIf(results.xMessage.Status = "Success", False, True)
+        Catch ex As Exception
+          Return False
+        End Try
+      End Get
+    End Property
+
+    Public Class cMessage
+      Public Property AckNo As String = ""
+      Public Property AckDt As String = ""
+      Public Property Irn As String = ""
+      Public Property SignedInvoice As String = ""
+      Public Property SignedQRCode As String = ""
+      Public Property EwbNo As String = ""
+      Public Property EwbDt As String = ""
+      Public Property EwbValidTill As String = ""
+      Public Property QRCodeUrl As String = ""
+      Public Property EinvoicePdf As String = ""
+      Public Property Status As String = ""
+      Public Property Remarks As String = ""
+      Public Property alert As String = ""
+      Public Property [error] As Boolean = False
+    End Class
+    Public Class cResults
+      Public ReadOnly Property xMessage As cMessage
+        Get
+          Return message
+        End Get
+      End Property
+      Public Property message As cMessage
+      Public Property errorMessage As String = ""
+      Public Property InfoDtls As String = ""
+      Public Property status As String = ""
+      Public Property code As String = ""
+      Public Property RequestID As String = ""
+      Public ReadOnly Property isError As Boolean
+        Get
+          Return IIf(xMessage.Status = "Success", False, True)
+        End Get
+      End Property
+
+    End Class
   End Class
   Public Class miCancelInvoice
     Public Property access_token As String = ""
@@ -427,11 +466,33 @@ Namespace SIS.CIISG
     Public Property cancel_remarks As String = ""
   End Class
   Public Class miCancelResponce
-    Public Property Irn As String = ""
-    Public Property CancelDate As String = ""
-    Public Property Status As String = ""
-    Public Property errorMessage As String = ""
-    Public Property code As String = ""
+    Public Property results As New cResults
+    Public ReadOnly Property isError As Boolean
+      Get
+        Try
+          Return IIf(results.code = "200", False, True)
+        Catch ex As Exception
+          Return False
+        End Try
+      End Get
+    End Property
+
+    Public Class cMessage
+      Public Property Irn As String = ""
+      Public Property CancelDate As String = ""
+    End Class
+    Public Class cResults
+      Public Property message As cMessage
+      Public Property errorMessage As String = ""
+      Public Property InfoDtls As String = ""
+      Public Property status As String = ""
+      Public Property code As String = ""
+      Public ReadOnly Property isError As Boolean
+        Get
+          Return IIf(status = "Success", False, True)
+        End Get
+      End Property
+    End Class
   End Class
   Public Class miError
     Public Property message As String = ""

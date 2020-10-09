@@ -5,21 +5,26 @@ Imports System.Web.Script.Serialization
 Imports System.Net
 Imports System.Drawing
 Imports System.IO
+Imports ejiVault
 Public Class JobProcessor
   Inherits TimerSupport
   Implements IDisposable
 
   Private jpConfig As ConfigFile = Nothing
   Private MayContinue As Boolean = True
-  Private LibraryPath As String = ""
-  Private LibraryID As String = ""
-  Private RemoteLibraryConnected As Boolean = False
+  Private LibraryConnected As Boolean = False
 
   Public Event JobStarted()
   Public Event JobStopped()
   Public Event Log(ByVal Message As String)
   Public Event Err(ByVal Message As String)
+  Public Event Show(ByVal Message As String)
 
+  Public Property InvoiceNo As String = ""
+
+  Public Sub Shw(ByVal str As String)
+    RaiseEvent Show(str)
+  End Sub
   Public Sub Msg(ByVal str As String)
     RaiseEvent Log(str)
   End Sub
@@ -28,99 +33,81 @@ Public Class JobProcessor
   End Sub
   Public Overrides Sub Process()
     Try
-      If jpConfig.Testing Then
-        For Each cmp As ConfigFile.Company In jpConfig.Companies
-          If Not cmp.IsActive Then Continue For
+      If IsStopping Then
+        Msg("Cancelling.")
+        Exit Sub
+      End If
+      For Each cmp As ConfigFile.Company In jpConfig.Companies
+        If Not cmp.IsActive Then Continue For
+        Shw("ERP Company: " & cmp.ERPCompany)
+        Dim ci800s As List(Of SIS.CIISG.ciisg800) = SIS.CIISG.ciisg800.GetPending(cmp.ERPCompany, jpConfig.Testing, InvoiceNo)
+        Shw("To be processed: " & ci800s.Count)
+        Dim cnt As Integer = 0
+        If ci800s.Count > 0 Then
           Msg("ERP Company: " & cmp.ERPCompany)
-          SubmitInvoice(cmp)
-          If IsStopping Then
-            Msg("Cancelled")
-            Exit For
-          End If
-        Next
-      Else
-        For Each cmp As ConfigFile.Company In jpConfig.Companies
-          If Not cmp.IsActive Then Continue For
-          Msg("ERP Company: " & cmp.ERPCompany)
-          Dim ci800s As List(Of SIS.CIISG.ciisg800) = SIS.CIISG.ciisg800.GetPending(cmp.ERPCompany)
           Msg("To be processed: " & ci800s.Count)
-          If ci800s.Count <= 0 Then Continue For
           For Each ci800 As SIS.CIISG.ciisg800 In ci800s
-            If ci800.t_rers = enumFetchInvoice.YES AndAlso ci800.t_rpst = enumProcessStatus.Success Then
-              'Re-Fetch Invoice
-            ElseIf ci800.t_invs = enumProcessFor.CancelInvoice AndAlso ci800.t_rpst = enumProcessStatus.Success Then
-              CancelInvoice(ci800, cmp)
-            ElseIf ci800.t_rpst = enumProcessStatus.Free Or ci800.t_rpst = enumProcessStatus.Retry Then
+            cnt += 1
+            Shw("Processing: " & cnt)
+            If jpConfig.Testing Then
               SubmitInvoice(ci800, cmp)
+            Else
+              If ci800.t_rers = enumFetchInvoice.YES AndAlso ci800.t_rpst = enumProcessStatus.Success Then
+                'Re-Fetch Invoice
+              ElseIf ci800.t_invs = enumProcessFor.CancelInvoice AndAlso ci800.t_rpst = enumProcessStatus.Success Then
+                CancelInvoice(ci800, cmp)
+              ElseIf ci800.t_rpst = enumProcessStatus.Free Or ci800.t_rpst = enumProcessStatus.Retry Then
+                SubmitInvoice(ci800, cmp)
+              End If
+            End If
+            If jpConfig.Testing Then
+              StopJob()
+              Msg("Auto cancelling Invoice Process.")
             End If
             If IsStopping Then
               Exit For
             End If
           Next
-          If IsStopping Then
-            Msg("Cancelled")
-            Exit For
-          End If
-        Next
-      End If
+        End If
+        If jpConfig.Testing Then
+          StopJob()
+          Msg("Auto cancelling for Company.")
+        End If
+        If IsStopping Then
+          Msg("Cancelled")
+          Exit For
+        End If
+      Next
     Catch ex As Exception
       MsgErr(ex.Message)
     End Try
   End Sub
   Private Sub CancelInvoice(ci800 As SIS.CIISG.ciisg800, cmp As ConfigFile.Company)
-    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
+    Dim xResponse As SIS.CIISG.miCancelResponce = Nothing
     Dim Token As SIS.CIISG.miTokenResponce = GetToken(cmp)
     If Token IsNot Nothing Then
-      Dim miInvoice As SIS.CIISG.miSubmitInvoice = SIS.CIISG.ciisg800.ConvertToMiSubmitInvoice(Token, ci800, cmp.ERPCompany)
+      Dim miInvoice As SIS.CIISG.miCancelInvoice = SIS.CIISG.ciisg800.ConvertToMiCancelInvoice(Token, ci800, cmp.ERPCompany)
       If miInvoice IsNot Nothing Then
-        xResponse = GetSubmitResponse(miInvoice, cmp.URLSubmitInvoice)
+        MsgErr("Cancelling=>Comp: " & ci800.t_comp & ", Tran: " & ci800.t_tran & ", DocN: " & ci800.t_docn & "  /||\")
+        xResponse = GetCancelResponse(miInvoice, cmp.URLCancelInvoice)
         If xResponse.isError Then
-          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Failed, xResponse)
+          SIS.CIISG.ciisg800.UpdateCancelInvoice(ci800, cmp, enumProcessStatus.Failed, xResponse)
+          MsgErr(xResponse.results.errorMessage)
+          MsgErr("==============================")
         Else
-          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Success, xResponse)
+          SIS.CIISG.ciisg800.UpdateCancelInvoice(ci800, cmp, enumProcessStatus.Cancelled, xResponse)
         End If
       End If
     End If
   End Sub
-
-  Private Sub SubmitInvoice(ci800 As SIS.CIISG.ciisg800, cmp As ConfigFile.Company)
-    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
-    Dim Token As SIS.CIISG.miTokenResponce = GetToken(cmp)
-    If Token IsNot Nothing Then
-      Dim miInvoice As SIS.CIISG.miSubmitInvoice = SIS.CIISG.ciisg800.ConvertToMiSubmitInvoice(Token, ci800, cmp.ERPCompany)
-      If miInvoice IsNot Nothing Then
-        xResponse = GetSubmitResponse(miInvoice, cmp.URLSubmitInvoice)
-        If xResponse.isError Then
-          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Failed, xResponse)
-        Else
-          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Success, xResponse)
-        End If
-      End If
-    End If
-  End Sub
-  Private Sub SubmitInvoice(cmp As ConfigFile.Company)
-    'Testing
-    Dim xErr As SIS.CIISG.miError = Nothing
-    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
-    Dim Token As SIS.CIISG.miTokenResponce = GetToken(cmp)
-    If Token IsNot Nothing Then
-      Dim miInvoice As New SIS.CIISG.miSubmitInvoice
-      With miInvoice
-        .access_token = Token.access_token
-        .document_details.document_date = Now.ToString("dd/MM/yyyy")
-      End With
-      xResponse = GetSubmitResponse(miInvoice, cmp.URLSubmitInvoice)
-      If Not xResponse.isError Then
-      Else
-        MsgErr(xResponse.results.errorMessage)
-      End If
-    End If
-  End Sub
-  Private Function GetSubmitResponse(miInvoice As SIS.CIISG.miSubmitInvoice, url As String) As SIS.CIISG.miSubmitResponce
+  Private Function GetCancelResponse(miInvoice As SIS.CIISG.miCancelInvoice, url As String) As SIS.CIISG.miCancelResponce
     Dim xErr As New SIS.CIISG.miError
-    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
+    Dim xResponse As SIS.CIISG.miCancelResponce = Nothing
     Dim xWebRequest As HttpWebRequest = GetWebRequest(url)
     Dim jsonStr As String = New JavaScriptSerializer().Serialize(miInvoice)
+    If jpConfig.JSONLog Then
+      MsgErr("Cancel Submited JSON=>" & jsonStr)
+    End If
     Dim jsonByte() As Byte = System.Text.Encoding.ASCII.GetBytes(jsonStr)
     xWebRequest.ContentLength = jsonByte.Count
     xWebRequest.GetRequestStream().Write(jsonByte, 0, jsonByte.Count)
@@ -130,6 +117,91 @@ Public Class JobProcessor
       Dim sr As IO.StreamReader = New IO.StreamReader(st)
       Dim strResponse As String = sr.ReadToEnd
       sr.Close()
+      strResponse = strResponse.Replace("""message"":""""", """message"":{}")
+      If jpConfig.JSONLog Then
+        MsgErr("Cancel Response JSON=>" & strResponse)
+      End If
+      xResponse = New JavaScriptSerializer().Deserialize(strResponse, GetType(SIS.CIISG.miCancelResponce))
+    Catch ex As Exception
+      MsgErr(ex.Message)
+    End Try
+    Return xResponse
+  End Function
+
+  Private Sub SubmitInvoice(ci800 As SIS.CIISG.ciisg800, cmp As ConfigFile.Company)
+    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
+    Dim Token As SIS.CIISG.miTokenResponce = GetToken(cmp)
+    If Token IsNot Nothing Then
+      Dim miInvoice As SIS.CIISG.miSubmitInvoice = SIS.CIISG.ciisg800.ConvertToMiSubmitInvoice(Token, ci800, cmp.ERPCompany)
+      If miInvoice IsNot Nothing Then
+        MsgErr("Submitting=>Comp: " & ci800.t_comp & ", Tran: " & ci800.t_tran & ", DocN: " & ci800.t_docn & "  /||\")
+        xResponse = GetSubmitResponse(miInvoice, cmp.URLSubmitInvoice)
+        If xResponse.isError Then
+          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Failed, xResponse)
+          MsgErr(xResponse.results.errorMessage)
+          MsgErr("==============================")
+        Else
+          SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Success, xResponse)
+          '===========================================
+          DownloadFiles(cmp, xResponse, ci800.IndxKey)
+          '===========================================
+        End If
+      End If
+    End If
+  End Sub
+  Private Sub DownloadFiles(cmp As ConfigFile.Company, xResponse As SIS.CIISG.miSubmitResponce, IndxKey As String)
+    Dim URL As String = ""
+    Dim FileName As String = ""
+    Dim FilePath As String = ""
+    '1. Download QRCode PNG
+    URL = xResponse.results.xMessage.QRCodeUrl.Replace("\/", "/")
+    FileName = URL.Substring(URL.LastIndexOf("/") + 1)
+    FilePath = jpConfig.TempPath & "\" & FileName & ".PNG"
+    If My.Computer.FileSystem.FileExists(FilePath) Then
+      My.Computer.FileSystem.DeleteFile(FilePath)
+    End If
+    My.Computer.Network.DownloadFile(URL, FilePath)
+    Try
+      EJI.ediAFile.UploadFile(cmp.QRCodeHandle, IndxKey, FilePath, "0340")
+    Catch ex As Exception
+      MsgErr(ex.Message)
+    End Try
+    '2. Download Invoice PDF
+    URL = xResponse.results.xMessage.EinvoicePdf.Replace("\/", "/")
+    FileName = URL.Substring(URL.LastIndexOf("/") + 1)
+    FilePath = jpConfig.TempPath & "\" & FileName & ".PDF"
+    If My.Computer.FileSystem.FileExists(FilePath) Then
+      My.Computer.FileSystem.DeleteFile(FilePath)
+    End If
+    My.Computer.Network.DownloadFile(URL, FilePath)
+    Try
+      EJI.ediAFile.UploadFile(cmp.InvoiceHandle, IndxKey, FilePath, "0340")
+    Catch ex As Exception
+      MsgErr(ex.Message)
+    End Try
+  End Sub
+  Private Function GetSubmitResponse(miInvoice As SIS.CIISG.miSubmitInvoice, url As String) As SIS.CIISG.miSubmitResponce
+    Dim xErr As New SIS.CIISG.miError
+    Dim xResponse As SIS.CIISG.miSubmitResponce = Nothing
+    Dim xWebRequest As HttpWebRequest = GetWebRequest(url)
+    Dim jsonStr As String = New JavaScriptSerializer().Serialize(miInvoice)
+    If jpConfig.JSONLog Then
+      MsgErr("Processing: " & miInvoice.document_details.document_type & " - " & miInvoice.document_details.document_number)
+      MsgErr("Submitted JSON=>" & jsonStr)
+    End If
+    Dim jsonByte() As Byte = System.Text.Encoding.ASCII.GetBytes(jsonStr)
+    xWebRequest.ContentLength = jsonByte.Count
+    xWebRequest.GetRequestStream().Write(jsonByte, 0, jsonByte.Count)
+    Try
+      Dim rs As WebResponse = xWebRequest.GetResponse()
+      Dim st As IO.Stream = rs.GetResponseStream
+      Dim sr As IO.StreamReader = New IO.StreamReader(st)
+      Dim strResponse As String = sr.ReadToEnd
+      sr.Close()
+      strResponse = strResponse.Replace("""message"":""""", """message"":{}")
+      If jpConfig.JSONLog Then
+        MsgErr("Response JSON=>" & strResponse)
+      End If
       xResponse = New JavaScriptSerializer().Deserialize(strResponse, GetType(SIS.CIISG.miSubmitResponce))
     Catch ex As Exception
       MsgErr(ex.Message)
@@ -167,6 +239,9 @@ Public Class JobProcessor
     Dim Uri As Uri = New Uri(url)
     Dim xWebRequest As HttpWebRequest = WebRequest.Create(Uri)
     With xWebRequest
+      If jpConfig.UseProxy Then
+        .Proxy = New WebProxy(jpConfig.Proxy)
+      End If
       .Method = "POST"
       .ContentType = "application/json"
       .Accept = "*/*"
@@ -184,11 +259,19 @@ Public Class JobProcessor
       Dim ConfigPath As String = IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) & "\Settings.xml"
       jpConfig = ConfigFile.DeSerialize(ConfigPath)
       SIS.SYS.SQLDatabase.DBCommon.BaaNLive = jpConfig.BaaNLive
-      Dim tmpL As SIS.EDI.ediALib = SIS.EDI.ediALib.GetActiveLibrary
-      LibraryPath = "\\192.9.200.146\" & tmpL.t_path
-      LibraryID = tmpL.t_lbcd
-      If ConnectToNetworkFunctions.connectToNetwork(LibraryPath, "X:", "administrator", "Indian@12345") Then
-        RemoteLibraryConnected = True
+
+      ejiVault.EJI.DBCommon.BaaNLive = jpConfig.BaaNLive
+      ejiVault.EJI.DBCommon.ERPCompany = jpConfig.VaultLibraryCompany
+      ejiVault.EJI.DBCommon.IsLocalISGECVault = jpConfig.IsLocalISGECVault
+      ejiVault.EJI.DBCommon.ISGECVaultIP = jpConfig.ISGECVaultIP
+      If ejiVault.EJI.DBCommon.ConnectLibrary() Then
+        LibraryConnected = True
+      End If
+      If jpConfig.Testing Then
+        If InvoiceNo = "" Then
+          MsgErr("When Testing, Invoice No. is required to enter.")
+          StopJob()
+        End If
       End If
     Catch ex As Exception
       StopJob()
@@ -197,9 +280,10 @@ Public Class JobProcessor
   End Sub
 
   Public Overrides Sub Stopped()
-    If RemoteLibraryConnected Then
-      ConnectToNetworkFunctions.disconnectFromNetwork("X:")
-      RemoteLibraryConnected = False
+    If LibraryConnected Then
+      If ejiVault.EJI.DBCommon.DisconnectLibrary() Then
+        LibraryConnected = False
+      End If
     End If
     jpConfig = Nothing
     RaiseEvent JobStopped()

@@ -23,6 +23,8 @@ Partial Class frmMain
   <System.Diagnostics.DebuggerStepThrough()> _
   Private Sub InitializeComponent()
     Me.split1 = New System.Windows.Forms.SplitContainer()
+    Me.F_JSONLog = New System.Windows.Forms.CheckBox()
+    Me.F_Invoice = New System.Windows.Forms.TextBox()
     Me.Label1 = New System.Windows.Forms.Label()
     Me.cmdStop = New System.Windows.Forms.Button()
     Me.cmdStart = New System.Windows.Forms.Button()
@@ -48,6 +50,8 @@ Partial Class frmMain
     '
     'split1.Panel1
     '
+    Me.split1.Panel1.Controls.Add(Me.F_JSONLog)
+    Me.split1.Panel1.Controls.Add(Me.F_Invoice)
     Me.split1.Panel1.Controls.Add(Me.Label1)
     Me.split1.Panel1.Controls.Add(Me.cmdStop)
     Me.split1.Panel1.Controls.Add(Me.cmdStart)
@@ -58,6 +62,25 @@ Partial Class frmMain
     Me.split1.Size = New System.Drawing.Size(743, 322)
     Me.split1.SplitterDistance = 40
     Me.split1.TabIndex = 3
+    '
+    'F_JSONLog
+    '
+    Me.F_JSONLog.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+    Me.F_JSONLog.AutoSize = True
+    Me.F_JSONLog.Location = New System.Drawing.Point(413, 9)
+    Me.F_JSONLog.Name = "F_JSONLog"
+    Me.F_JSONLog.Size = New System.Drawing.Size(15, 14)
+    Me.F_JSONLog.TabIndex = 6
+    Me.F_JSONLog.UseVisualStyleBackColor = True
+    '
+    'F_Invoice
+    '
+    Me.F_Invoice.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+    Me.F_Invoice.Location = New System.Drawing.Point(435, 6)
+    Me.F_Invoice.Name = "F_Invoice"
+    Me.F_Invoice.Size = New System.Drawing.Size(100, 20)
+    Me.F_Invoice.TabIndex = 5
+    Me.F_Invoice.Text = "ISG191930"
     '
     'Label1
     '
@@ -70,7 +93,7 @@ Partial Class frmMain
     '
     'cmdStop
     '
-    Me.cmdStop.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+    Me.cmdStop.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
     Me.cmdStop.Enabled = False
     Me.cmdStop.Location = New System.Drawing.Point(656, 4)
     Me.cmdStop.Name = "cmdStop"
@@ -81,7 +104,7 @@ Partial Class frmMain
     '
     'cmdStart
     '
-    Me.cmdStart.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+    Me.cmdStart.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
     Me.cmdStart.Location = New System.Drawing.Point(555, 4)
     Me.cmdStart.Name = "cmdStart"
     Me.cmdStart.Size = New System.Drawing.Size(75, 23)
@@ -151,4 +174,6 @@ Partial Class frmMain
   Friend WithEvents split2 As SplitContainer
   Friend WithEvents ListBox1 As ListBox
   Friend WithEvents ListBox2 As ListBox
+  Friend WithEvents F_Invoice As TextBox
+  Friend WithEvents F_JSONLog As CheckBox
 End Class

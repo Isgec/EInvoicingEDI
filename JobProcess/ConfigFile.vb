@@ -17,6 +17,8 @@ Public Class ConfigFile
     Public Property URLSubmitInvoice As String = ""
     Public Property URLCancelInvoice As String = ""
     Public Property URLReFetchInvoice As String = ""
+    Public Property QRCodeHandle As String = ""
+    Public Property InvoiceHandle As String = ""
   End Class
   Public Function Clone() As Object Implements ICloneable.Clone
     Return MyBase.MemberwiseClone()
@@ -27,6 +29,14 @@ Public Class ConfigFile
   Public Property BaaNLive As Boolean = False
   Public Property JoomlaLive As Boolean = False
   Public Property Testing As Boolean = True
+  Public Property TempPath As String = ""
+  Public Property VaultLibraryCompany As String = ""
+  Public Property IsLocalISGECVault As Boolean = False
+  Public Property ISGECVaultIP As String = ""
+  Public Property UseProxy As Boolean = False
+  Public Property Proxy As String = ""
+  Public Property JSONLog As Boolean = False
+
   Public Shared Function Serialize(ByVal jpConfig As ConfigFile, ByVal SerializeAt As String) As ConfigFile
     jpConfig.SerializedAt = SerializeAt
     Dim oSrz As XmlSerializer = New XmlSerializer(jpConfig.GetType)

@@ -8,7 +8,7 @@ Namespace SIS.CIISG
   Public Class ciisg800
     Public Property t_comp As Integer = 0
     Public Property t_tran As String = ""
-    Public Property t_docn As Integer = 0
+    Public Property t_docn As String = ""
     Public Property t_ogst As String = ""
     Public Property t_taxs As String = ""
     Public Property t_vers As Integer = 0
@@ -31,7 +31,7 @@ Namespace SIS.CIISG
     Public Property t_bfdt As String = ""
     Public Property t_bfpn As String = ""
     Public Property t_bfsc As String = ""
-    Public Property t_bfph As Integer = 0
+    Public Property t_bfph As String = ""
     Public Property t_bfem As String = ""
     Public Property t_btgn As String = ""
     Public Property t_btnm As String = ""
@@ -53,7 +53,7 @@ Namespace SIS.CIISG
     Public Property t_sfdt As String = ""
     Public Property t_sfpn As String = ""
     Public Property t_sfsc As String = ""
-    Public Property t_sfph As Integer = 0
+    Public Property t_sfph As String = ""
     Public Property t_sfem As String = ""
     Public Property t_stgn As String = ""
     Public Property t_stnm As String = ""
@@ -64,7 +64,7 @@ Namespace SIS.CIISG
     Public Property t_stdt As String = ""
     Public Property t_stpn As String = ""
     Public Property t_stsc As String = ""
-    Public Property t_stph As Integer = 0
+    Public Property t_stph As String = ""
     Public Property t_stem As String = ""
     Public Property t_item As String = ""
     Public Property t_dsca As String = ""
@@ -136,20 +136,28 @@ Namespace SIS.CIISG
     Public Property t_rpst As Integer = 0
     Public Property t_flag As Integer = 0
     Public Property t_crdt As String = ""
-    Public Shared Function GetPending(comp As String) As List(Of SIS.CIISG.ciisg800)
+    Public ReadOnly Property IndxKey As String
+      Get
+        Return t_comp & "_" & t_tran & "_" & t_docn
+      End Get
+    End Property
+    Public Shared Function GetPending(comp As String, Testing As Boolean, InvoiceNo As String) As List(Of SIS.CIISG.ciisg800)
       Dim Results As New List(Of SIS.CIISG.ciisg800)
       Dim Sql As String = ""
       Sql &= " SELECT *  FROM [tciisg800" & comp & "] "
       Sql &= " WHERE "
-      Sql &= " t_comp = '" & comp & "'"
-      Sql &= " AND "
-      Sql &= " ( "
-      Sql &= " (t_rpst IN (" & enumProcessStatus.Free & "," & enumProcessStatus.Retry & ")) "
-      Sql &= " OR "
-      Sql &= " (t_rpst = " & enumProcessStatus.Success & " AND t_invs = " & enumProcessFor.CancelInvoice & ") "
-      Sql &= " OR "
-      Sql &= " (t_rpst = " & enumProcessStatus.Success & " AND t_rers = " & enumFetchInvoice.YES & ") "
-      Sql &= " ) "
+      If Testing Then
+        Sql &= " t_ninv='" & InvoiceNo & "' "
+      Else
+        Sql &= " "
+        Sql &= " ( "
+        Sql &= " (t_rpst IN (" & enumProcessStatus.Free & "," & enumProcessStatus.Retry & ")) "
+        Sql &= " OR "
+        Sql &= " (t_rpst = " & enumProcessStatus.Success & " AND t_invs = " & enumProcessFor.CancelInvoice & ") "
+        Sql &= " OR "
+        Sql &= " (t_rpst = " & enumProcessStatus.Success & " AND t_rers = " & enumFetchInvoice.YES & ") "
+        Sql &= " ) "
+      End If
       Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
         Using Cmd As SqlCommand = Con.CreateCommand()
           Cmd.CommandType = CommandType.Text
@@ -170,7 +178,9 @@ Namespace SIS.CIISG
       Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
         Con.Open()
         Select Case sts
-          Case enumProcessStatus.Failed 'Error In User Data 'To Reprocess ERP has to set status to Free  After Data Correction, 'Or Not To Be Processed can be set from ERP
+          Case enumProcessStatus.Failed
+            'Error In User Data 'To Reprocess ERP has to set status to Free  After Data Correction, 
+            'Or Not To Be Processed can be set from ERP
             Dim IResponseFound As Boolean = True
             Dim IResponse As SIS.CIISG.ciisg801 = SIS.CIISG.ciisg801.GetCiIsg801(ci800.t_comp, ci800.t_tran, ci800.t_docn, cmp.ERPCompany)
             If IResponse Is Nothing Then
@@ -185,9 +195,9 @@ Namespace SIS.CIISG
               .t_dtyp = ci800.t_dtyp
               .t_eflg = 1 'ERP Enum YES=1, NO=2
               .t_errc = data.results.code
-              .t_errm = data.results.errorMessage
+              .t_errm = data.results.errorMessage.Replace("'", "`")
               .t_irnn = "" 'Govt IRN
-              .t_irns = data.results.Status
+              .t_irns = IIf(data.results.status = "Success", 1, 2)
               .t_ninv = ci800.t_ninv
               .t_odat = ci800.t_odat
               .t_ogst = ci800.t_ogst
@@ -196,7 +206,7 @@ Namespace SIS.CIISG
               .t_Refcntu = 0
               .t_rqid = data.results.requestId
               .t_sinv = "0" 'Govt Signed Invoice
-              .t_stat = data.Status
+              .t_stat = IIf(data.results.status = "Success", 1, 2)
               .t_tran = ci800.t_tran
               .t_ispi = ""
               .t_isgi = ""
@@ -222,30 +232,30 @@ Namespace SIS.CIISG
               IResponse = New SIS.CIISG.ciisg801
             End If
             With IResponse
-              .t_ackd = data.AckDt
-              .t_ackn = data.AckNo
+              .t_ackd = data.results.xMessage.AckDt
+              .t_ackn = data.results.xMessage.AckNo
               .t_comp = ci800.t_comp
               .t_docn = ci800.t_docn
               .t_dtyp = ci800.t_dtyp
               .t_eflg = 2 'ERP Enum YES=1, NO=2
               .t_errc = data.results.code
               .t_errm = data.results.errorMessage
-              .t_irnn = data.Irn
-              .t_irns = data.results.Status
+              .t_irnn = data.results.xMessage.Irn
+              .t_irns = IIf(data.results.status = "Success", 1, 2)
               .t_ninv = ci800.t_ninv
               .t_odat = ci800.t_odat
               .t_ogst = ci800.t_ogst
-              .t_qrst = SIS.CIISG.ciisg801.CreateText("ciisg801" & cmp.ERPCompany & ".qrst", ci800.t_crdt, data.SignedQRCode, cmp.ERPCompany)
+              .t_qrst = SIS.CIISG.ciisg801.CreateText("ciisg801" & cmp.ERPCompany & ".qrst", ci800.t_crdt, data.results.xMessage.SignedQRCode, cmp.ERPCompany)
               .t_Refcntd = 0
               .t_Refcntu = 0
-              .t_rqid = data.results.requestId
-              .t_sinv = SIS.CIISG.ciisg801.CreateText("ciisg801" & cmp.ERPCompany & ".sinv", ci800.t_crdt, data.SignedInvoice, cmp.ERPCompany)
-              .t_stat = data.Status
+              .t_rqid = data.results.RequestID
+              .t_sinv = SIS.CIISG.ciisg801.CreateText("ciisg801" & cmp.ERPCompany & ".sinv", ci800.t_crdt, data.results.xMessage.SignedInvoice, cmp.ERPCompany)
+              .t_stat = IIf(data.results.status = "Success", 1, 2)
               .t_tran = ci800.t_tran
-              .t_ispi = data.EinvoicePdf
+              .t_ispi = data.results.xMessage.EinvoicePdf
               .t_isgi = ""
               .t_isqr = ""
-              .t_qrcd = data.QRCodeUrl
+              .t_qrcd = data.results.xMessage.QRCodeUrl
             End With
             If IResponseFound Then
               SIS.CIISG.ciisg801.UpdateCiIsg801(IResponse, cmp.ERPCompany)
@@ -270,21 +280,21 @@ Namespace SIS.CIISG
       End Using
 
     End Sub
-
     Public Shared Function ConvertToMiSubmitInvoice(Token As SIS.CIISG.miTokenResponce, ci800 As SIS.CIISG.ciisg800, comp As String) As SIS.CIISG.miSubmitInvoice
       Dim tmp As New miSubmitInvoice
       With tmp
         .access_token = Token.access_token
-        .user_gstin = "09AAAPG7885R002" 'ci800.t_ogst
+        .user_gstin = ci800.t_bfgn ' "09AAAPG7885R002" 'ci800.t_ogst
         .data_source = "ERP"
         With .transaction_details
           .supply_type = ci800.t_catg
-          .charge_type = ci800.t_regr
-          .ecommerce_gstin = ci800.t_etrn
+          .charge_type = "N"  ' ci800.t_regr
+          .ecommerce_gstin = IIf(ci800.t_etrn = "2", "", "09AAAPG7885R002")
+          .igst_on_intra = "N"
         End With
         With .document_details
-          .document_number = ci800.t_docn
-          .document_date = ci800.t_odat
+          .document_number = ci800.t_ninv
+          .document_date = ci800.t_odat.AddMinutes(330)
           .document_type = ci800.t_dtyp
         End With
         With .seller_details
@@ -292,90 +302,144 @@ Namespace SIS.CIISG
           .legal_name = ci800.t_bfnm
           .trade_name = ci800.t_bfnm
           .address1 = ci800.t_bfbn
-          .address2 = ci800.t_bfbm & ci800.t_bffn
+          .address2 = IIf((ci800.t_bfbm & ci800.t_bffn).Trim.Length < 3, "", ci800.t_bfbm & ci800.t_bffn)
           .location = ci800.t_bflc
           .pincode = ci800.t_bfpn
-          .state_code = ci800.t_bfsc
-          .phone_number = ci800.t_bfph
-          .email = ci800.t_bfem
+
+          'Fix-01
+          '.state_code = ci800.t_bfsc 'It was blank in ERP
+          Try
+            .state_code = ci800.t_bfgn.Substring(0, 2)
+          Catch ex As Exception
+          End Try
+
+          '.phone_number = ci800.t_bfph
+          '.email = ci800.t_bfem
         End With
         With .buyer_details
-          .gstin = ci800.t_btgn
           .legal_name = ci800.t_btnm
           .trade_name = ci800.t_btnm
-          .place_of_supply = ci800.t_btsc
+
+          'Fix-02
+          Select Case ci800.t_catg
+            Case "EXPWP", "EXPWOP"
+              .place_of_supply = "96"
+              .state_code = "96"
+              .gstin = "URP"
+            Case Else
+              .place_of_supply = ci800.t_btsc
+              .state_code = ci800.t_btsc
+              .gstin = ci800.t_btgn
+          End Select
+
           .address1 = ci800.t_btbn
-          .address2 = ci800.t_btbm & ci800.t_btfn
+          .address2 = IIf((ci800.t_btbm & ci800.t_btfn).Trim.Length < 3, "", ci800.t_btbm & ci800.t_btfn)
           .location = ci800.t_btlc
           .pincode = ci800.t_btpn
-          .state_code = ci800.t_btsc
-          .phone_number = ci800.t_btph
-          .email = ci800.t_btem
+          '.phone_number = ci800.t_btph
+          '.email = ci800.t_btem
         End With
-        With .dispatch_details
-          .company_name = ci800.t_sfnm
-          .address1 = ci800.t_sfbn
-          .address2 = ci800.t_sfbm & ci800.t_sffn
-          .location = ci800.t_sflc
-          .pincode = ci800.t_sfpn
-          .state_code = ci800.t_sfsc
-        End With
-        With .ship_details
-          .gstin = ci800.t_stgn
-          .legal_name = ci800.t_stnm
-          .trade_name = ci800.t_stnm
-          .address1 = ci800.t_stbn
-          .address2 = ci800.t_stbm & ci800.t_stfn
-          .location = ci800.t_stlc
-          .pincode = ci800.t_stpn
-          .state_code = ci800.t_stsc
-        End With
-        With .export_details
+
+        If ci800.t_bfgn <> ci800.t_sfgn Then
+          Dim odispatch_details As New miSubmitInvoice.cdispatch_details
+          With odispatch_details
+            .company_name = ci800.t_sfnm
+            .address1 = ci800.t_sfbn
+            .address2 = IIf((ci800.t_sfbm & ci800.t_sffn).Trim.Length < 3, "", ci800.t_sfbm & ci800.t_sffn)
+            .location = ci800.t_sflc
+            .pincode = ci800.t_sfpn
+            'Fix-
+            '.state_code = ci800.t_sfsc 'Blank in ERP
+            Try
+              .state_code = ci800.t_sfgn.Substring(0, 2)
+            Catch ex As Exception
+            End Try
+          End With
+          .dispatch_details = odispatch_details
+        End If
+
+        'Fix-
+        If ci800.t_btgn <> ci800.t_stgn Then
+          Dim oship_details As New miSubmitInvoice.cship_details
+          With oship_details
+            .gstin = ci800.t_stgn
+            .legal_name = ci800.t_stnm
+            .trade_name = ci800.t_stnm
+            .address1 = ci800.t_stbn
+            .address2 = IIf((ci800.t_stbm & ci800.t_stfn).Trim.Length < 3, "", ci800.t_stbm & ci800.t_stfn)
+            .location = ci800.t_stlc
+            .pincode = ci800.t_stpn
+            '.state_code = ci800.t_stsc
+            Try
+              .state_code = ci800.t_stgn.Substring(0, 2)
+            Catch ex As Exception
+            End Try
+          End With
+          .ship_details = oship_details
+        End If
+
+        Dim oexport_details As New miSubmitInvoice.cexport_details
+        With oexport_details
           .ship_bill_number = ci800.t_shbn
           .ship_bill_date = ci800.t_shbd
           .port_code = ci800.t_port
           .foreign_currency = ci800.t_fcur
           .country_code = ci800.t_ccty
           .refund_claim = "N"
+          .export_duty = "0.00"
         End With
-        With .payment_details
-          .bank_account_number = ci800.t_accd
-          .paid_balance_amount = ci800.t_blmt
-          .credit_days = ci800.t_cred
-          .credit_transfer = ci800.t_cret
-          .direct_debit = ci800.t_dird
-          .branch_or_ifsc = ci800.t_ifsc
-          .payment_mode = ci800.t_modp
-          .payee_name = ci800.t_payn
-          .payment_due_date = ci800.t_ddop
-          .payment_instruction = ci800.t_payi
-          .payment_term = ci800.t_tpay
-        End With
+        .export_details = oexport_details
+
+        'NOT to be transfer
+        'Dim opayment_details As New miSubmitInvoice.cpayment_details
+        'With opayment_details
+        '  .bank_account_number = ci800.t_accd
+        '  .paid_balance_amount = ci800.t_blmt
+        '  .credit_days = ci800.t_cred
+        '  .credit_transfer = ci800.t_cret
+        '  .direct_debit = ci800.t_dird
+        '  .branch_or_ifsc = ci800.t_ifsc
+        '  .payment_mode = ci800.t_modp
+        '  .payee_name = ci800.t_payn
+        '  .outstanding_amount = "0.00"
+        '  .payment_instruction = ci800.t_payi
+        '  .payment_term = ci800.t_tpay
+        'End With
+        '.payment_details = opayment_details
+
         With .reference_details
-          .invoice_period_start_date = ci800.t_ipst
-          .invoice_period_end_date = ci800.t_iped
           .invoice_remarks = ci800.t_invr
-          Dim o_preceding_document_details As New SIS.CIISG.miSubmitInvoice.cpreceding_document_details
-          With o_preceding_document_details
-            .reference_of_original_invoice = ci800.t_prin
-            .preceding_invoice_date = ci800.t_prid
-            .other_reference = ci800.t_aore
-          End With
-          .preceding_document_details.Add(o_preceding_document_details)
-          Dim o_contract_details As New SIS.CIISG.miSubmitInvoice.ccontract_details
-          With o_contract_details
-            .project_reference_number = ci800.t_pren
-            .receipt_advice_number = ci800.t_rean
-            '.receipt_advice_date = Not available in Mapping
-            .batch_reference_number = ci800.t_lbrn
-            .contract_reference_number = ci800.t_cren
-            .other_reference = ci800.t_aore
-            .project_reference_number = ci800.t_pren
-            .vendor_po_reference_number = ci800.t_vprn
-            '.vendor_po_reference_date = Not available in Mapping
-          End With
-          .contract_details.Add(o_contract_details)
+          Select Case ci800.t_dtyp
+            Case "INV"
+            Case Else
+              .preceding_document_details = New List(Of miSubmitInvoice.cpreceding_document_details)
+              Dim o_preceding_document_details As New SIS.CIISG.miSubmitInvoice.cpreceding_document_details
+              With o_preceding_document_details
+                .reference_of_original_invoice = ci800.t_prin
+                .preceding_invoice_date = IIf(ci800.t_prid = "01/01/1970", "", ci800.t_prid)
+                .other_reference = ci800.t_aore
+              End With
+              .preceding_document_details.Add(o_preceding_document_details)
+          End Select
+          'NOT to be transfer
+          'Dim o_contract_details As New SIS.CIISG.miSubmitInvoice.ccontract_details
+          'With o_contract_details
+          '  .receipt_advice_number = ci800.t_rean
+          '  .receipt_advice_date = ""    'Not available In Mapping
+          '  .batch_reference_number = ci800.t_lbrn
+          '  .contract_reference_number = ci800.t_cren
+          '  .other_reference = ci800.t_aore
+          '  .project_reference_number = ci800.t_pren
+          '  .project_reference_number = ci800.t_pren
+          '  Try
+          '    .vendor_po_reference_number = ci800.t_vprn.Substring(0, 16)
+          '  Catch ex As Exception
+          '  End Try
+          '  .vendor_po_reference_date = ""   'Not available in Mapping
+          'End With
+          '.contract_details.Add(o_contract_details)
         End With
+        'NOT to be transfer
         'Additional Document Details : Not available in Mapping
         With .value_details
           .total_assessable_value = ci800.t_tval
@@ -383,8 +447,10 @@ Namespace SIS.CIISG
           .total_sgst_value = ci800.t_tsgs
           .total_igst_value = ci800.t_tigs
           .total_cess_value = ci800.t_tces
-          .total_cess_nonadvol_value = ci800.t_tsna
-          '.round_off_amount = Not available in Mapping
+          .total_cess_value_of_state = "0"
+          .total_discount = "0.00"
+          .total_other_charges = "0.00"
+          .round_off_amount = "0.00"  'Not available in Mapping
           .total_invoice_value = ci800.t_fivl
           .total_cess_value_of_state = ci800.t_tscs
           .total_invoice_value_additional_currency = ci800.t_fivl
@@ -397,65 +463,75 @@ Namespace SIS.CIISG
       End With
       Return tmp
     End Function
-    'Public Shared Sub dmisg001DeleteAll(ByVal t_docn As String, ByVal t_revn As String, ByVal comp As String)
-    '  Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
-    '    Con.Open()
-    '    Using Cmd As SqlCommand = Con.CreateCommand()
-    '      Cmd.CommandType = CommandType.StoredProcedure
-    '      Cmd.CommandText = "spdmisg002" & comp & "DeleteText"
-    '      SIS.SYS.SQLDatabase.DBCommon.AddDBParameter(Cmd, "@t_docn", SqlDbType.VarChar, 33, t_docn)
-    '      SIS.SYS.SQLDatabase.DBCommon.AddDBParameter(Cmd, "@t_revn", SqlDbType.VarChar, 21, t_revn)
-    '      Cmd.ExecuteNonQuery()
-    '    End Using
-    '    Using Cmd As SqlCommand = Con.CreateCommand()
-    '      Cmd.CommandType = CommandType.Text
-    '      Cmd.CommandText = "DELETE tdmisg002" & comp & " where t_docn='" & t_docn & "' and t_revn='" & t_revn & "'"
-    '      Cmd.ExecuteNonQuery()
-    '    End Using
-    '    'Type R-Item
-    '    Using Cmd As SqlCommand = Con.CreateCommand()
-    '      Cmd.CommandType = CommandType.StoredProcedure
-    '      Cmd.CommandText = "spdmisg021" & comp & "DeleteText"
-    '      SIS.SYS.SQLDatabase.DBCommon.AddDBParameter(Cmd, "@t_docn", SqlDbType.VarChar, 33, t_docn)
-    '      SIS.SYS.SQLDatabase.DBCommon.AddDBParameter(Cmd, "@t_revn", SqlDbType.VarChar, 21, t_revn)
-    '      Cmd.ExecuteNonQuery()
-    '    End Using
-    '  End Using
-    'End Sub
-    '05. Used
-
-    Public Sub New(ByVal Reader As SqlDataReader)
-      Try
-        For Each pi As System.Reflection.PropertyInfo In Me.GetType.GetProperties
-          If pi.MemberType = Reflection.MemberTypes.Property Then
-            Try
-              Dim Found As Boolean = False
-              For I As Integer = 0 To Reader.FieldCount - 1
-                If Reader.GetName(I).ToLower = pi.Name.ToLower Then
-                  Found = True
-                  Exit For
-                End If
-              Next
-              If Found Then
-                If Convert.IsDBNull(Reader(pi.Name)) Then
-                  Select Case Reader.GetDataTypeName(Reader.GetOrdinal(pi.Name))
-                    Case "decimal"
-                      CallByName(Me, pi.Name, CallType.Let, "0.00")
-                    Case "bit"
-                      CallByName(Me, pi.Name, CallType.Let, Boolean.FalseString)
-                    Case Else
-                      CallByName(Me, pi.Name, CallType.Let, String.Empty)
-                  End Select
-                Else
-                  CallByName(Me, pi.Name, CallType.Let, Reader(pi.Name))
-                End If
+    Public Shared Function ConvertToMiCancelInvoice(Token As SIS.CIISG.miTokenResponce, ci800 As SIS.CIISG.ciisg800, comp As String) As SIS.CIISG.miCancelInvoice
+      Dim tmp As New miCancelInvoice
+      Dim ci801 As SIS.CIISG.ciisg801 = SIS.CIISG.ciisg801.GetCiIsg801(ci800.t_comp, ci800.t_tran, ci800.t_docn, comp)
+      With tmp
+        .access_token = Token.access_token
+        .user_gstin = ci800.t_bfgn
+        .irn = ci801.t_irnn
+        .cancel_reason = "1"
+        .cancel_remarks = "Wrong Entry"
+      End With
+      Return tmp
+    End Function
+    Public Shared Sub UpdateCancelInvoice(ci800 As SIS.CIISG.ciisg800, cmp As ConfigFile.Company, sts As enumProcessStatus, Optional data As SIS.CIISG.miCancelResponce = Nothing)
+      ci800.t_crdt = IIf(ci800.t_crdt = "", "0340", ci800.t_crdt)
+      Using Con As SqlConnection = New SqlConnection(SIS.SYS.SQLDatabase.DBCommon.GetBaaNConnectionString())
+        Con.Open()
+        Select Case sts
+          Case enumProcessStatus.Failed
+            Dim IResponse As SIS.CIISG.ciisg801 = SIS.CIISG.ciisg801.GetCiIsg801(ci800.t_comp, ci800.t_tran, ci800.t_docn, cmp.ERPCompany)
+            With IResponse
+              .t_eflg = 1 'ERP Enum YES=1, NO=2
+              .t_errc = data.results.code
+              .t_errm = data.results.errorMessage.Replace("'", "`")
+              .t_irns = IIf(data.results.status = "Success", 1, 2)
+              .t_stat = IIf(data.results.status = "Success", 1, 2)
+              If data.results.message.CancelDate <> "" Then
+                .t_cdte = data.results.message.CancelDate
               End If
-            Catch ex As Exception
-            End Try
-          End If
-        Next
-      Catch ex As Exception
-      End Try
+            End With
+            SIS.CIISG.ciisg801.UpdateCiIsg801(IResponse, cmp.ERPCompany)
+            Dim Sql As String = ""
+            Using Cmd As SqlCommand = Con.CreateCommand()
+              Cmd.CommandType = CommandType.Text
+              Cmd.CommandText = "UPDATE tciisg800" & cmp.ERPCompany & " SET t_rpst=" & sts & ", t_flag = 1 WHERE t_comp ='" & ci800.t_comp & "' AND t_tran ='" & ci800.t_tran & "' AND t_docn ='" & ci800.t_docn & "' "
+              Cmd.ExecuteNonQuery()
+            End Using
+          Case enumProcessStatus.Cancelled
+            Dim IResponse As SIS.CIISG.ciisg801 = SIS.CIISG.ciisg801.GetCiIsg801(ci800.t_comp, ci800.t_tran, ci800.t_docn, cmp.ERPCompany)
+            With IResponse
+              .t_eflg = 2 'ERP Enum YES=1, NO=2
+              .t_errc = data.results.code
+              .t_errm = data.results.errorMessage
+              .t_irns = IIf(data.results.status = "Success", 1, 2)
+              .t_stat = IIf(data.results.status = "Success", 1, 2)
+              If data.results.message.CancelDate <> "" Then
+                .t_cdte = data.results.message.CancelDate
+              End If
+            End With
+            SIS.CIISG.ciisg801.UpdateCiIsg801(IResponse, cmp.ERPCompany)
+            Dim Sql As String = ""
+            Using Cmd As SqlCommand = Con.CreateCommand()
+              Cmd.CommandType = CommandType.Text
+              Cmd.CommandText = "UPDATE tciisg800" & cmp.ERPCompany & " SET t_rpst=" & sts & ", t_flag = 2 WHERE t_comp ='" & ci800.t_comp & "' AND t_tran ='" & ci800.t_tran & "' AND t_docn ='" & ci800.t_docn & "' "
+              Cmd.ExecuteNonQuery()
+            End Using
+          Case enumProcessStatus.Retry
+            Dim Sql As String = ""
+            Using Cmd As SqlCommand = Con.CreateCommand()
+              Cmd.CommandType = CommandType.Text
+              Cmd.CommandText = "UPDATE tciisg800" & cmp.ERPCompany & " SET t_rpst=" & sts & ", t_flag = 2 WHERE t_comp ='" & ci800.t_comp & "' AND t_tran ='" & ci800.t_tran & "' AND t_docn ='" & ci800.t_docn & "' "
+              Cmd.ExecuteNonQuery()
+            End Using
+        End Select
+
+      End Using
+
+    End Sub
+    Public Sub New(ByVal Reader As SqlDataReader)
+      SIS.SYS.SQLDatabase.DBCommon.NewObj(Me, Reader)
     End Sub
     Public Sub New()
     End Sub
