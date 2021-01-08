@@ -239,7 +239,7 @@ Namespace SIS.CIISG
               .t_dtyp = ci800.t_dtyp
               .t_eflg = 2 'ERP Enum YES=1, NO=2
               .t_errc = data.results.code
-              .t_errm = data.results.errorMessage
+              .t_errm = data.results.errorMessage.Replace("'", "`")
               .t_irnn = data.results.xMessage.Irn
               .t_irns = IIf(data.results.status = "Success", 1, 2)
               .t_ninv = ci800.t_ninv
@@ -381,7 +381,7 @@ Namespace SIS.CIISG
         Dim oexport_details As New miSubmitInvoice.cexport_details
         With oexport_details
           .ship_bill_number = ci800.t_shbn
-          .ship_bill_date = ci800.t_shbd
+          .ship_bill_date = ci800.t_shbd.AddMinutes(330)
           .port_code = ci800.t_port
           .foreign_currency = ci800.t_fcur
           .country_code = ci800.t_ccty
@@ -416,7 +416,7 @@ Namespace SIS.CIISG
               Dim o_preceding_document_details As New SIS.CIISG.miSubmitInvoice.cpreceding_document_details
               With o_preceding_document_details
                 .reference_of_original_invoice = ci800.t_prin
-                .preceding_invoice_date = IIf(ci800.t_prid = "01/01/1970", "", ci800.t_prid)
+                .preceding_invoice_date = IIf(ci800.t_prid = "01/01/1970", "", ci800.t_prid.AddMinutes(330))
                 .other_reference = ci800.t_aore
               End With
               .preceding_document_details.Add(o_preceding_document_details)

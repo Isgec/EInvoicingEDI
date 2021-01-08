@@ -14,7 +14,19 @@ Namespace SIS.CIISG
     Public Property t_dtyp As String = ""
     Public Property t_ninv As String = ""
     Public Property t_odat As DateTime
-    Public Property t_errm As String = ""
+    Private _t_errm As String = ""
+    Public Property t_errm As String
+      Get
+        Return _t_errm
+      End Get
+      Set(value As String)
+        Try
+          If value.Length > 999 Then value = value.Substring(0, 998)
+          _t_errm = value
+        Catch ex As Exception
+        End Try
+      End Set
+    End Property
     Public Property t_stat As Integer = 0
     Public Property t_errc As Integer = 0
     Public Property t_ackn As String = ""
