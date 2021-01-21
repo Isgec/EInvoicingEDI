@@ -412,14 +412,15 @@ Namespace SIS.CIISG
           Select Case ci800.t_dtyp
             Case "INV"
             Case Else
-              .preceding_document_details = New List(Of miSubmitInvoice.cpreceding_document_details)
-              Dim o_preceding_document_details As New SIS.CIISG.miSubmitInvoice.cpreceding_document_details
-              With o_preceding_document_details
-                .reference_of_original_invoice = ci800.t_prin
-                .preceding_invoice_date = IIf(ci800.t_prid = "01/01/1970", "", ci800.t_prid.AddMinutes(330))
-                .other_reference = ci800.t_aore
-              End With
-              .preceding_document_details.Add(o_preceding_document_details)
+              'As per E-Mail From Pranjal, It is NOT required in any case -21/01/2021
+              '.preceding_document_details = New List(Of miSubmitInvoice.cpreceding_document_details)
+              'Dim o_preceding_document_details As New SIS.CIISG.miSubmitInvoice.cpreceding_document_details
+              'With o_preceding_document_details
+              '  .reference_of_original_invoice = ci800.t_prin
+              '  .preceding_invoice_date = IIf(ci800.t_prid = "01/01/1970", "", ci800.t_prid.AddMinutes(330))
+              '  .other_reference = ci800.t_aore
+              'End With
+              '.preceding_document_details.Add(o_preceding_document_details)
           End Select
           'NOT to be transfer
           'Dim o_contract_details As New SIS.CIISG.miSubmitInvoice.ccontract_details
