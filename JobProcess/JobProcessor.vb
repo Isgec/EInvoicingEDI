@@ -32,6 +32,14 @@ Public Class JobProcessor
     RaiseEvent Err(str)
   End Sub
   Public Overrides Sub Process()
+    'If file is not attached, to attach file
+    'Enter Document Type+Document Number in TextBox
+    'Click Start
+    If InvoiceNo <> "" Then
+      jpConfig.Testing = True
+    Else
+      jpConfig.Testing = False
+    End If
     Try
       If IsStopping Then
         Msg("Cancelling.")

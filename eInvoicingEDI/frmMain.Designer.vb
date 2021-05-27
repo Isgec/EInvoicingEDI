@@ -80,7 +80,6 @@ Partial Class frmMain
     Me.F_Invoice.Name = "F_Invoice"
     Me.F_Invoice.Size = New System.Drawing.Size(100, 20)
     Me.F_Invoice.TabIndex = 5
-    Me.F_Invoice.Text = "ISG191930"
     '
     'Label1
     '

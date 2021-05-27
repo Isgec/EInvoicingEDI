@@ -11,10 +11,6 @@ Public Class frmMain
   Dim WithEvents jp As JobProcess.JobProcessor = Nothing
   Private Sub cmdStart_Click(sender As Object, e As EventArgs) Handles cmdStart.Click
     Dim InvNo As String = F_Invoice.Text
-    If InvNo = "" Then
-      MessageBox.Show("Enter Invoice No process.")
-      Exit Sub
-    End If
     cmdStart.Enabled = False
     cmdStart.Text = "Loading..."
     ListBox1.Items.Clear()

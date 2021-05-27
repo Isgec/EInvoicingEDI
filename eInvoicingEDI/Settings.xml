@@ -50,7 +50,7 @@
   <StartupPath />
   <SerializedAt>C:\Data\Projects15.NET\eInvoicingEDI\eInvoicingEDI\bin\Debug\Settings.xml</SerializedAt>
   <BaaNLive>true</BaaNLive>
-  <Testing>false</Testing>
+  <Testing>true</Testing>
   <JoomlaLive>false</JoomlaLive>
   <TempPath>C:\Temp</TempPath>
   <VaultLibraryCompany>200</VaultLibraryCompany>
