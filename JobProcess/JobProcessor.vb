@@ -151,7 +151,11 @@ Public Class JobProcessor
         Else
           SIS.CIISG.ciisg800.UpdateInvoice(ci800, cmp, enumProcessStatus.Success, xResponse)
           '===========================================
-          DownloadFiles(cmp, xResponse, ci800.IndxKey)
+          Try
+            DownloadFiles(cmp, xResponse, ci800.IndxKey)
+          Catch ex As Exception
+            MsgErr(ex.Message)
+          End Try
           '===========================================
         End If
       End If
@@ -168,11 +172,39 @@ Public Class JobProcessor
     If My.Computer.FileSystem.FileExists(FilePath) Then
       My.Computer.FileSystem.DeleteFile(FilePath)
     End If
-    My.Computer.Network.DownloadFile(URL, FilePath)
+    Dim FileDownloaded As Boolean = False
+    Dim fi As FileInfo = Nothing
+    For retey As Integer = 1 To 5
+      Threading.Thread.Sleep(2000)
+      My.Computer.Network.DownloadFile(URL, FilePath)
+      fi = New FileInfo(FilePath)
+      If fi.Exists Then
+        If fi.Length > 0 Then
+          FileDownloaded = True
+          Exit For
+        End If
+      End If
+    Next
+    If Not FileDownloaded Then
+      Throw New Exception("PNG File NOT Downloaded.")
+    End If
+    Dim FileUploaded As Boolean = False
     Try
-      EJI.ediAFile.UploadFile(cmp.QRCodeHandle, IndxKey, FilePath, "0340")
+      For retry As Integer = 1 To 5
+        Dim uFile As EJI.ediAFile = EJI.ediAFile.UploadFile(cmp.QRCodeHandle, IndxKey, FilePath, "0340")
+        fi = New FileInfo(uFile.UploadedPathFile)
+        If fi.Exists Then
+          If fi.Length > 0 Then
+            FileUploaded = True
+            Exit For
+          End If
+        End If
+      Next
+      If Not FileUploaded Then
+        Throw New Exception("PNG File NOT Uploaded in ISGEC Vault.")
+      End If
     Catch ex As Exception
-      MsgErr(ex.Message)
+      Throw New Exception(ex.Message)
     End Try
     '2. Download Invoice PDF
     URL = xResponse.results.xMessage.EinvoicePdf.Replace("\/", "/")
@@ -181,11 +213,39 @@ Public Class JobProcessor
     If My.Computer.FileSystem.FileExists(FilePath) Then
       My.Computer.FileSystem.DeleteFile(FilePath)
     End If
-    My.Computer.Network.DownloadFile(URL, FilePath)
+    FileDownloaded = False
+    fi = Nothing
+    For retey As Integer = 1 To 5
+      Threading.Thread.Sleep(2000)
+      My.Computer.Network.DownloadFile(URL, FilePath)
+      fi = New FileInfo(FilePath)
+      If fi.Exists Then
+        If fi.Length > 0 Then
+          FileDownloaded = True
+          Exit For
+        End If
+      End If
+    Next
+    If Not FileDownloaded Then
+      Throw New Exception("PDF File NOT Downloaded.")
+    End If
+    FileUploaded = False
     Try
-      EJI.ediAFile.UploadFile(cmp.InvoiceHandle, IndxKey, FilePath, "0340")
+      For retry As Integer = 1 To 5
+        Dim uFile As EJI.ediAFile = EJI.ediAFile.UploadFile(cmp.InvoiceHandle, IndxKey, FilePath, "0340")
+        fi = New FileInfo(uFile.UploadedPathFile)
+        If fi.Exists Then
+          If fi.Length > 0 Then
+            FileUploaded = True
+            Exit For
+          End If
+        End If
+      Next
+      If Not FileUploaded Then
+        Throw New Exception("PDF File NOT Uploaded in ISGEC Vault.")
+      End If
     Catch ex As Exception
-      MsgErr(ex.Message)
+      Throw New Exception(ex.Message)
     End Try
   End Sub
   Private Function GetSubmitResponse(miInvoice As SIS.CIISG.miSubmitInvoice, url As String) As SIS.CIISG.miSubmitResponce

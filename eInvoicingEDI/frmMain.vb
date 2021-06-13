@@ -11,6 +11,11 @@ Public Class frmMain
   Dim WithEvents jp As JobProcess.JobProcessor = Nothing
   Private Sub cmdStart_Click(sender As Object, e As EventArgs) Handles cmdStart.Click
     Dim InvNo As String = F_Invoice.Text
+    If InvNo <> "" Then
+      If MessageBox.Show(Me, "Do you want to Re-download QR Code and Invoice PDF ?" & vbCrLf & "OR" & vbCrLf & "To start EDI, Please remove Invoice No", "", MessageBoxButtons.OKCancel) = DialogResult.Cancel Then
+        Exit Sub
+      End If
+    End If
     cmdStart.Enabled = False
     cmdStart.Text = "Loading..."
     ListBox1.Items.Clear()
@@ -46,6 +51,7 @@ Public Class frmMain
       cmdStop.Enabled = False
       cmdStop.Text = "Stop"
       cmdStart.Enabled = True
+      F_Invoice.Text = ""
     End If
   End Sub
 
