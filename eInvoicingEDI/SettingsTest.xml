@@ -55,7 +55,7 @@
   <TempPath>C:\Temp</TempPath>
   <VaultLibraryCompany>200</VaultLibraryCompany>
   <IsLocalISGECVault>false</IsLocalISGECVault>
-  <ISGECVaultIP>192.9.200.146</ISGECVaultIP>
+  <ISGECVaultIP>perk01</ISGECVaultIP>
   <UseProxy>false</UseProxy>
   <Proxy>192.9.200.20:3128</Proxy>
   <JSONLog>true</JSONLog>

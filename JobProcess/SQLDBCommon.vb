@@ -10,22 +10,22 @@ Namespace SIS.SYS.SQLDatabase
     Public Shared Property BaaNLive As Boolean = False
     Public Shared Function GetBaaNConnectionString() As String
       If BaaNLive Then
-        Return "Data Source=192.9.200.129;Initial Catalog=inforerpdb;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=lalit;Password=scorpions"
+        Return "Data Source=ganesha;Initial Catalog=inforerpdb;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=lalit;Password=scorpions"
       Else
         Return "Data Source=192.9.200.38;Initial Catalog=inforerpdb;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=lalit;Password=scorpions"
       End If
     End Function
     Public Shared Function GetVaultConnection(Optional ByVal vaultDB As String = "BOILER")
-      Return "Data Source=192.9.200.119\autodeskvault;Initial Catalog=" & vaultDB & ";Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=Isgec@123"
+      Return "Data Source=bramha\autodeskvault;Initial Catalog=" & vaultDB & ";Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=Isgec@123"
     End Function
     Public Shared Function GetDevelopmentConnectionString() As String
       Return "Data Source=192.168.28.136;Initial Catalog=IJTPerks;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=isgec12345"
     End Function
     Public Shared Function GetConnectionString() As String
-      Return "Data Source=192.9.200.150;Initial Catalog=IJTPerks;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=isgec12345"
+      Return "Data Source=perk03;Initial Catalog=IJTPerks;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=isgec12345"
     End Function
     Public Shared Function GetLocalConnectionString() As String
-      Return "Data Source=192.9.200.150;Initial Catalog=HKK;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=isgec#12345"
+      Return "Data Source=perk03;Initial Catalog=HKK;Integrated Security=False;User Instance=False;Persist Security Info=True;User ID=sa;Password=isgec#12345"
     End Function
     Shared Sub New()
 
